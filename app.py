@@ -19,10 +19,52 @@ def login_required(view):
         return view(*args, **kwargs)
     return wrapped_view
 
-# Inicialización de tabla de administradores y usuario por defecto
+# Inicialización de esquema y usuario administrador por defecto
+
+def ensure_schema():
+    """Crea tablas mínimas necesarias de forma idempotente."""
+    conn = get_db_connection()
+    # usuarios
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS usuarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nombre TEXT NOT NULL
+        )
+        """
+    )
+    # pagos
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS pagos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            mes TEXT,
+            valor INTEGER,
+            pagado INTEGER,
+            estado TEXT,
+            FOREIGN KEY(usuario_id) REFERENCES usuarios(id)
+        )
+        """
+    )
+    # usuarios_admin
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS usuarios_admin (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
 
 def ensure_admin_table_and_seed():
     conn = get_db_connection()
+    # Asegurar que la tabla exista antes de insertar
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS usuarios_admin (
@@ -166,5 +208,6 @@ def create_pago(user_id):
 
 if __name__ == "__main__":
     with app.app_context():
+        ensure_schema()
         ensure_admin_table_and_seed()
     app.run(debug=True)
