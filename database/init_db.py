@@ -44,14 +44,7 @@ cur.execute(
     """
 )
 
-# Seed admin por defecto si no existe
-row = cur.execute("SELECT id FROM usuarios_admin WHERE username = ?", ("admin1",)).fetchone()
-if not row:
-    pw_hash = generate_password_hash("cocorote2026")
-    cur.execute(
-        "INSERT INTO usuarios_admin (username, password_hash) VALUES (?, ?)",
-        ("admin1", pw_hash)
-    )
+
 
 conn.commit()
 conn.close()
