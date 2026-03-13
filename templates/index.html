@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Pagos de Agua</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">💧</div>
+    <div class="brand-text">
+      <span class="brand-title">Cocorote</span>
+      <span class="brand-subtitle">Sistema de Recaudo de Agua</span>
+    </div>
+    {% if session.get('user') %}
+      <div style="flex:1 1 auto;"></div>
+      <a class="btn ghost" href="{{ url_for('logout') }}">Salir</a>
+    {% endif %}
+  </div>
+</header>
+
+<main class="container home">
+  <section class="hero">
+    <h1>Gestiona pagos y usuarios con eficiencia</h1>
+    <p class="lead">
+      Consulta usuarios, registra pagos y visualiza el estado de las cuentas de forma clara y rápida.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="/users">Ir a Usuarios</a>
+      <a class="btn ghost" href="#" aria-disabled="true">Historial (pronto)</a>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="card">
+      <h3>Resumen claro</h3>
+      <p>Estados al día, parcial o pendiente con totales pagados y adeudados.</p>
+    </div>
+    <div class="card">
+      <h3>Acciones rápidas</h3>
+      <p>Agrega usuarios y registra pagos en pocos pasos.</p>
+    </div>
+    <div class="card">
+      <h3>Diseño responsivo</h3>
+      <p>Optimizado para escritorio y móvil con una interfaz moderna.</p>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <span>© {{ 2026 if false else '' }} Sistema de recaudo Cocorote</span>
+</footer>
+
+</body>
+</html>

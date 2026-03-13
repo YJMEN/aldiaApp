@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Usuario</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<header class="site-header">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">💧</div>
+    <div class="brand-text">
+      <span class="brand-title">Cocorote</span>
+      <span class="brand-subtitle">Sistema de Recaudo de Agua</span>
+    </div>
+    {% if session.get('user') %}
+      <div style="flex:1 1 auto;"></div>
+      <a class="btn ghost" href="{{ url_for('logout') }}">Salir</a>
+    {% endif %}
+  </div>
+</header>
+
+<main class="container">
+  <section style="margin:8px 0 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <h1 style="margin:0;">Pagos de {{ usuario['nombre'] }}</h1>
+    <a class="btn ghost" href="{{ url_for('users') }}">⬅ Volver a Usuarios</a>
+  </section>
+
+  <form class="stack" method="POST" action="{{ url_for('create_pago', user_id=usuario['id']) }}">
+    <div class="input-row">
+      <select class="input" name="mes" required>
+        <option value="" disabled selected>Selecciona el mes</option>
+        {% for m in ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'] %}
+          <option value="{{ m }}">{{ m }}</option>
+        {% endfor %}
+      </select>
+      <input class="input" type="number" name="valor" placeholder="Valor" min="0" required>
+      <select class="input" name="estado">
+        <option value="" selected>Estado (opcional)</option>
+        <option value="pendiente">pendiente</option>
+        <option value="parcial">parcial</option>
+        <option value="aldia">aldia</option>
+      </select>
+      <select class="input" name="pagado-select">
+        <option value="no" selected>No pagado</option>
+        <option value="si">Pagado</option>
+      </select>
+      <input type="hidden" name="pagado" value="" id="pagado-hidden">
+      <button class="btn primary" type="submit">Agregar pago</button>
+    </div>
+  </form>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Mes</th>
+          <th class="num">Valor</th>
+          <th class="center">Pagado</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pagos %}
+        <tr>
+          <td>{{ p['mes'] }}</td>
+          <td class="num">{{ '{:,.0f}'.format(p['valor']) }}</td>
+          <td class="center">{{ 'Sí' if p['pagado'] else 'No' }}</td>
+          <td>
+            {% set est = p['estado'] or '-' %}
+            {% if est in ['aldia','parcial','pendiente'] %}
+              <span class="badge {{ 'status-aldia' if est=='aldia' else 'status-parcial' if est=='parcial' else 'status-pendiente' }}">{{ est }}</span>
+            {% else %}
+              <span class="muted">{{ est }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="center muted">Sin pagos registrados</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+  // Sin JS externo: sincroniza select de pagado con el hidden que espera el backend
+  const pagadoSelect = document.querySelector('select[name="pagado-select"]');
+  const pagadoHidden = document.getElementById('pagado-hidden');
+  if (pagadoSelect && pagadoHidden){
+    pagadoHidden.value = '';
+    pagadoSelect.addEventListener('change', () => {
+      // backend espera checkbox: 'on' => 1, ausencia => 0
+      pagadoHidden.value = pagadoSelect.value === 'si' ? 'on' : '';
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Iniciar sesión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">💧</div>
+      <div class="brand-text">
+        <span class="brand-title">Cocorote</span>
+        <span class="brand-subtitle">Sistema de Recaudo de Agua</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="display:grid; place-items:center; min-height:calc(100dvh - 90px);">
+    <section class="card" style="width:min(100%, 420px); padding:22px 20px;">
+      <h1 style="margin:0 0 12px; font-size:22px;">Iniciar sesión</h1>
+      <p class="muted" style="margin:0 0 14px;">Ingresa tus credenciales para continuar.</p>
+
+      {% if error %}
+        <div class="form-error" style="margin-bottom:10px;">{{ error }}</div>
+      {% endif %}
+
+      <form class="stack" method="POST" action="{{ url_for('login') }}">
+        <input class="input" type="text" name="username" placeholder="Usuario" required />
+        <input class="input" type="password" name="password" placeholder="Contraseña" required />
+        <button class="btn primary" type="submit" style="width:100%;">Entrar</button>
+      </form>
+      
+    </section>
+  </main>
+</body>
+</html>
