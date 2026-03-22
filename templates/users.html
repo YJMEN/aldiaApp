@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Usuarios</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -17,18 +19,27 @@
     </div>
     {% if session.get('user') %}
       <div style="flex:1 1 auto;"></div>
-      <a class="btn ghost" href="{{ url_for('logout') }}">Salir</a>
+      <a class="btn ghost" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Salir</a>
     {% endif %}
   </div>
 </header>
 
 <main class="container">
   <section style="margin:8px 0 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <h1 style="margin:0;">Usuarios</h1>
-    <a class="btn ghost" href="/">⬅ Volver</a>
+    <div>
+      <h1 style="margin:0;">Usuarios</h1>
+      <p style="margin:6px 0 0; color:#555;">Nueva deuda se genera mes a mes.</p>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="btn secondary" id="btn-toggle-add"><i class="fas fa-user-plus"></i> Nuevo usuario</button>
+      <form method="POST" action="{{ url_for('reset_users') }}" id="form-reset">
+        <button class="btn danger" type="submit"><i class="fas fa-trash"></i> Reset Usuarios</button>
+      </form>
+      <a class="btn ghost" href="/">⬅ Volver</a>
+    </div>
   </section>
 
-  <form class="stack" method="POST" action="{{ url_for('users') }}">
+  <form class="stack hidden" id="form-add-user" method="POST" action="{{ url_for('users') }}">
     <div class="input-row">
       <input class="input" type="text" name="nombre" placeholder="Nombre del usuario" required>
       <button class="btn primary" type="submit">Agregar usuario</button>
@@ -38,45 +49,136 @@
     {% endif %}
   </form>
 
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Usuario</th>
-          <th class="num">Pagado</th>
-          <th class="num">Adeuda</th>
-          <th class="num">Saldo a favor</th>
-          <th>Estado</th>
-          <th class="center">Acciones</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for usuario in usuarios %}
-        <tr>
-          <td>
-            <div class="cell-title">{{ usuario['nombre'] }}</div>
-            <div class="cell-sub">ID: {{ usuario['id'] }}</div>
-          </td>
-          <td class="num">{{ '{:,.0f}'.format(usuario['pagado']) }}</td>
-          <td class="num">{{ '{:,.0f}'.format(usuario['adeuda']) }}</td>
-          <td class="num">{{ '{:,.0f}'.format(usuario['saldo_favor']) }}</td>
-          <td>
-            {% set estado = usuario['estado'] %}
-            <span class="badge {{ 'status-aldia' if estado=='aldia' else 'status-parcial' if estado=='parcial' else 'status-pendiente' }}">{{ estado }}</span>
-          </td>
-          <td class="center">
-            <a class="btn ghost" href="{{ url_for('user_detail', user_id=usuario['id']) }}">Ver pagos</a>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="6" class="center muted">No hay usuarios registrados</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="cards-grid">
+    {% for usuario in usuarios %}
+    <div class="user-card">
+      <div class="card-header">
+        <div class="card-info">
+          <h3 class="card-name">{{ usuario['nombre'] }}</h3>
+          <p class="card-id">ID: {{ usuario['id'] }}</p>
+        </div>
+        {% set estado = usuario['estado'] %}
+        <span class="badge {{ 'status-aldia' if estado=='aldia' else 'status-parcial' if estado=='parcial' else 'status-pendiente' }}">{{ estado }}</span>
+      </div>
+      
+      <div class="card-body">
+        <div class="stat-group">
+          <div class="stat-item">
+            <span class="stat-label">Pagado</span>
+            <span class="stat-value positive">{{ '{:,.0f}'.format(usuario['pagado']) }}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="stat-item">
+            <span class="stat-label">Adeuda</span>
+            <span class="stat-value negative">{{ '{:,.0f}'.format(usuario['adeuda']) }}</span>
+          </div>
+        </div>
+        
+        <div class="stat-group">
+          <div class="stat-item full-width">
+            <span class="stat-label">Saldo a favor</span>
+            <span class="stat-value balance">{{ '{:,.0f}'.format(usuario['saldo_favor_real']) }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card-footer">
+        <a class="btn primary" href="{{ url_for('user_detail', user_id=usuario['id']) }}">Ver pagos</a>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>📭 No hay usuarios registrados</p>
+    </div>
+    {% endfor %}
   </div>
 </main>
+
+<script src="{{ url_for('static', filename='js/users.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const formAdd = document.getElementById('form-add-user');
+  const formReset = document.getElementById('form-reset');
+
+  if (formAdd) {
+    formAdd.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = formAdd.querySelector('input[name="nombre"]').value.trim();
+      if (!nombre) {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Campo vacío',
+          text: 'Por favor, ingresa un nombre para el usuario.',
+          confirmButtonText: 'Entendido',
+          background: '#11192b',
+          color: '#e2e8f0',
+          confirmButtonColor: '#3b82f6'
+        });
+        return;
+      }
+      const result = await Swal.fire({
+        title: '¿Registrar usuario?',
+        text: `¿Confirmas registrar a "${nombre}" como nuevo usuario?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Sí, registrar',
+        cancelButtonText: 'Cancelar',
+        background: '#11192b',
+        color: '#e2e8f0'
+      });
+      if (result.isConfirmed) {
+        formAdd.submit();
+      }
+    });
+  }
+
+  if (formReset) {
+    formReset.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const result = await Swal.fire({
+        title: '¿Reiniciar todo?',
+        text: 'Esto eliminará todos los usuarios y pagos. ¿Estás seguro?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Sí, reiniciar',
+        cancelButtonText: 'Cancelar',
+        background: '#11192b',
+        color: '#e2e8f0'
+      });
+      if (result.isConfirmed) {
+        formReset.submit();
+      }
+    });
+  }
+
+  // Logout confirmation
+  const logoutBtn = document.querySelector('a[href*="logout"]');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const result = await Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: '¿Estás seguro de que quieres cerrar sesión?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Sí, cerrar',
+        cancelButtonText: 'Cancelar',
+        background: '#11192b',
+        color: '#e2e8f0'
+      });
+      if (result.isConfirmed) {
+        window.location.href = '/logout';
+      }
+    });
+  }
+});
+</script>
 
 </body>
 </html>

@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
   <header class="site-header">
@@ -30,8 +31,14 @@
       {% endif %}
 
       <form class="stack" method="POST" action="{{ url_for('login') }}">
-        <input class="input" type="text" name="username" placeholder="Usuario" required />
-        <input class="input" type="password" name="password" placeholder="Contraseña" required />
+        <div class="input-wrapper">
+          <i class="fas fa-user"></i>
+          <input class="input" type="text" name="username" placeholder="Usuario" required />
+        </div>
+        <div class="input-wrapper">
+          <i class="fas fa-lock"></i>
+          <input class="input" type="password" name="password" placeholder="Contraseña" required />
+        </div>
         <button class="btn primary" type="submit" style="width:100%;">Entrar</button>
       </form>
       

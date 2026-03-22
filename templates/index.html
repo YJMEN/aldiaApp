@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <body>
@@ -21,42 +23,103 @@
     </div>
     {% if session.get('user') %}
       <div style="flex:1 1 auto;"></div>
-      <a class="btn ghost" href="{{ url_for('logout') }}">Salir</a>
+      <a class="btn ghost" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Salir</a>
     {% endif %}
   </div>
 </header>
 
 <main class="container home">
-  <section class="hero">
-    <h1>Gestiona pagos y usuarios con eficiencia</h1>
-    <p class="lead">
-      Consulta usuarios, registra pagos y visualiza el estado de las cuentas de forma clara y rápida.
-    </p>
-    <div class="cta">
-      <a class="btn primary" href="/users">Ir a Usuarios</a>
-      <a class="btn ghost" href="#" aria-disabled="true">Historial (pronto)</a>
+  <section style="margin:8px 0 24px;">
+    <h1 style="margin:0 0 8px; font-size:28px;">Dashboard</h1>
+    <p style="margin:0; color:#94a3b8;">Mes actual: {{ current_month }}</p>
+  </section>
+
+  <section class="stats-grid" style="margin-bottom:32px;">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats['total_usuarios'] or 0 }}</h3>
+        <p>Total Usuarios</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats['total_pagaron'] or 0 }}</h3>
+        <p>Pagaron</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ stats['total_no_pagaron'] or 0 }}</h3>
+        <p>Pendientes</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-dollar-sign"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ '{:,.0f}'.format(stats['total_recaudado'] or 0) }}</h3>
+        <p>Recaudado</p>
+      </div>
     </div>
   </section>
 
-  <section class="features">
-    <div class="card">
-      <h3>Resumen claro</h3>
-      <p>Estados al día, parcial o pendiente con totales pagados y adeudados.</p>
-    </div>
-    <div class="card">
-      <h3>Acciones rápidas</h3>
-      <p>Agrega usuarios y registra pagos en pocos pasos.</p>
-    </div>
-    <div class="card">
-      <h3>Diseño responsivo</h3>
-      <p>Optimizado para escritorio y móvil con una interfaz moderna.</p>
-    </div>
+  <section class="actions-grid">
+    <a class="action-card" href="/users">
+      <div class="action-icon">
+        <i class="fas fa-user-plus"></i>
+      </div>
+      <h3>Gestionar Usuarios</h3>
+      <p>Agregar, ver y administrar usuarios</p>
+    </a>
+    <a class="action-card" href="/historial">
+      <div class="action-icon">
+        <i class="fas fa-history"></i>
+      </div>
+      <h3>Historial de Pagos</h3>
+      <p>Ver todos los pagos y estadísticas</p>
+    </a>
   </section>
 </main>
 
 <footer class="site-footer">
   <span>© {{ 2026 if false else '' }} Sistema de recaudo Cocorote</span>
 </footer>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const logoutBtn = document.querySelector('a[href*="logout"]');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const result = await Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: '¿Estás seguro de que quieres cerrar sesión?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Sí, cerrar',
+        cancelButtonText: 'Cancelar',
+        background: '#11192b',
+        color: '#e2e8f0'
+      });
+      if (result.isConfirmed) {
+        window.location.href = '/logout';
+      }
+    });
+  }
+});
+</script>
 
 </body>
 </html>

@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalle de Usuario</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 <header class="site-header">
@@ -16,87 +18,147 @@
     </div>
     {% if session.get('user') %}
       <div style="flex:1 1 auto;"></div>
-      <a class="btn ghost" href="{{ url_for('logout') }}">Salir</a>
+      <a class="btn ghost" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Salir</a>
     {% endif %}
   </div>
 </header>
 
 <main class="container">
   <section style="margin:8px 0 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
-    <h1 style="margin:0;">Pagos de {{ usuario['nombre'] }}</h1>
+    <div>
+      <h1 style="margin:0;">Pagos de {{ usuario['nombre'] }}</h1>
+      <p style="margin:6px 0 0; color:#555;">Mes actual: {{ current_month }}</p>
+    </div>
     <a class="btn ghost" href="{{ url_for('users') }}">⬅ Volver a Usuarios</a>
   </section>
 
-  <form class="stack" method="POST" action="{{ url_for('create_pago', user_id=usuario['id']) }}">
-    <div class="input-row">
-      <select class="input" name="mes" required>
-        <option value="" disabled selected>Selecciona el mes</option>
-        {% for m in ['2026-01','2026-02','2026-03','2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11','2026-12'] %}
-          <option value="{{ m }}">{{ m }}</option>
-        {% endfor %}
-      </select>
-      <input class="input" type="number" name="valor" placeholder="Valor" min="0" required>
-      <select class="input" name="estado">
-        <option value="" selected>Estado (opcional)</option>
-        <option value="pendiente">pendiente</option>
-        <option value="parcial">parcial</option>
-        <option value="aldia">aldia</option>
-      </select>
-      <select class="input" name="pagado-select">
-        <option value="no" selected>No pagado</option>
-        <option value="si">Pagado</option>
-      </select>
-      <input type="hidden" name="pagado" value="" id="pagado-hidden">
-      <button class="btn primary" type="submit">Agregar pago</button>
-    </div>
-  </form>
+  <p style="margin-bottom:16px;">Al no pagar se acumula la deuda mes a mes. Si se atrasa, verás la historia mes a mes con estado e importe pendiente.</p>
 
-  <div class="table-wrap">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Mes</th>
-          <th class="num">Valor</th>
-          <th class="center">Pagado</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for p in pagos %}
-        <tr>
-          <td>{{ p['mes'] }}</td>
-          <td class="num">{{ '{:,.0f}'.format(p['valor']) }}</td>
-          <td class="center">{{ 'Sí' if p['pagado'] else 'No' }}</td>
-          <td>
-            {% set est = p['estado'] or '-' %}
-            {% if est in ['aldia','parcial','pendiente'] %}
-              <span class="badge {{ 'status-aldia' if est=='aldia' else 'status-parcial' if est=='parcial' else 'status-pendiente' }}">{{ est }}</span>
-            {% else %}
-              <span class="muted">{{ est }}</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="4" class="center muted">Sin pagos registrados</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="pagos-grid">
+    {% for p in pagos %}
+    <div class="pago-card">
+      <div class="pago-header">
+        <h3 class="pago-mes">{{ p['mes'] }}</h3>
+        <div class="pago-status">
+          {% if p['pagado'] %}
+            <span class="status-paid">✓ Pagado</span>
+          {% else %}
+            <span class="status-unpaid">✗ No pagado</span>
+          {% endif %}
+        </div>
+      </div>
+      
+      <div class="pago-body">
+        <div class="pago-valor">
+          <span class="pago-valor-label">Monto pagado</span>
+          <span class="pago-valor-amount">{{ '{:,.0f}'.format(p['valor']) }}</span>
+        </div>
+        <div class="pago-valor">
+          <span class="pago-valor-label">Deuda restante</span>
+          <span class="pago-valor-amount">{{ '{:,.0f}'.format(12000 - p['valor']) }}</span>
+        </div>
+        
+        <div class="pago-estado">
+          {% set est = p['estado'] or '-' %}
+          {% if est in ['aldia','parcial','pendiente'] %}
+            <span class="badge {{ 'status-aldia' if est=='aldia' else 'status-parcial' if est=='parcial' else 'status-pendiente' }}">{{ est }}</span>
+          {% else %}
+            <span class="pago-estado-default">{{ est }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if not p['pagado'] and p['mes'] == current_month %}
+      <div class="pago-actions">
+        <button type="button" class="btn ghost btn-pagar" data-pago-id="{{ p['id'] }}"><i class="fas fa-credit-card"></i> Pagar</button>
+        <form class="pago-form hidden" id="form-pago-{{ p['id'] }}" method="POST" action="{{ url_for('pagar_factura', user_id=usuario['id'], pago_id=p['id']) }}" style="margin-top:10px;">
+          <div class="input-row" style="flex-wrap:wrap; gap:8px;">
+            <select name="tipo_pago" class="input" required>
+              <option value="" disabled selected>Tipo de pago</option>
+              <option value="completo">Completo</option>
+              <option value="parcial">Parcial</option>
+            </select>
+            <input name="valor_parcial" class="input" type="number" min="0" placeholder="Cantidad parcial" style="width:160px;" disabled>
+            <button class="btn primary" type="submit">Registrar</button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>📋 Sin pagos registrados</p>
+    </div>
+    {% endfor %}
   </div>
 </main>
 
+<script src="{{ url_for('static', filename='js/user_detail.js') }}"></script>
 <script>
-  // Sin JS externo: sincroniza select de pagado con el hidden que espera el backend
-  const pagadoSelect = document.querySelector('select[name="pagado-select"]');
-  const pagadoHidden = document.getElementById('pagado-hidden');
-  if (pagadoSelect && pagadoHidden){
-    pagadoHidden.value = '';
-    pagadoSelect.addEventListener('change', () => {
-      // backend espera checkbox: 'on' => 1, ausencia => 0
-      pagadoHidden.value = pagadoSelect.value === 'si' ? 'on' : '';
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.pago-form').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const tipo = form.querySelector('select[name="tipo_pago"]').value;
+      const parcial = form.querySelector('input[name="valor_parcial"]').value;
+
+      if (!tipo) {
+        await Swal.fire({
+          icon: 'warning',
+          title: 'Selecciona tipo',
+          text: 'Elige si el pago es completo o parcial.',
+          confirmButtonText: 'Entendido',
+          background: '#11192b',
+          color: '#e2e8f0',
+          confirmButtonColor: '#3b82f6'
+        });
+        return;
+      }
+
+      let mensaje = tipo === 'completo' ? '¿Confirmas pago completo?' : `¿Confirmas pago parcial de ${parcial}?`;
+
+      const result = await Swal.fire({
+        title: 'Confirmar pago',
+        text: mensaje,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Sí, registrar',
+        cancelButtonText: 'Cancelar',
+        background: '#11192b',
+        color: '#e2e8f0'
+      });
+
+      if (result.isConfirmed) {
+        form.submit();
+      }
+    });
+  });
+
+  // Logout confirmation
+  const logoutBtn = document.querySelector('a[href*="logout"]');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const result = await Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: '¿Estás seguro de que quieres cerrar sesión?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Sí, cerrar',
+        cancelButtonText: 'Cancelar',
+        background: '#11192b',
+        color: '#e2e8f0'
+      });
+      if (result.isConfirmed) {
+        window.location.href = '/logout';
+      }
     });
   }
+});
 </script>
+
 </body>
 </html>

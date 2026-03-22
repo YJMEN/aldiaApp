@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de Pagos</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">💧</div>
+    <div class="brand-text">
+      <span class="brand-title">Cocorote</span>
+      <span class="brand-subtitle">Sistema de Recaudo de Agua</span>
+    </div>
+    {% if session.get('user') %}
+      <div style="flex:1 1 auto;"></div>
+      <a class="btn ghost" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Salir</a>
+    {% endif %}
+  </div>
+</header>
+
+<main class="container">
+  <section style="margin:8px 0 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+    <div>
+      <h1 style="margin:0;">Historial de Pagos</h1>
+      <p style="margin:6px 0 0; color:#aaa;">Mes actual: {{ current_month }}</p>
+    </div>
+    <a class="btn ghost" href="/">⬅ Volver</a>
+  </section>
+
+  <section class="card" style="margin-bottom:16px; padding:16px;">
+    <h3 style="margin:0 0 10px;">Resumen mensual ({{ current_month }})</h3>
+    <div class="stat-group" style="gap:14px;">
+      <div class="stat-item" style="text-align:left;">
+        <span class="stat-label">Usuarios registrados</span>
+        <span class="stat-value">{{ stats['total_usuarios'] or 0 }}</span>
+      </div>
+      <div class="stat-item" style="text-align:left;">
+        <span class="stat-label">Pagaron</span>
+        <span class="stat-value positive">{{ stats['total_pagaron'] or 0 }}</span>
+      </div>
+      <div class="stat-item" style="text-align:left;">
+        <span class="stat-label">Faltan por pagar</span>
+        <span class="stat-value negative">{{ stats['total_no_pagaron'] or 0 }}</span>
+      </div>
+      <div class="stat-item" style="text-align:left;">
+        <span class="stat-label">Total recaudado</span>
+        <span class="stat-value balance">{{ '{:,.0f}'.format(stats['total_recaudado'] or 0) }}</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="cards-grid">
+    {% for pago in pagos %}
+    <div class="user-card">
+      <div class="card-header">
+        <div class="card-info">
+          <h3 class="card-name">{{ pago['usuario_nombre'] }}</h3>
+          <p class="card-id">Pago ID: {{ pago['id'] }}</p>
+        </div>
+        {% set estado = pago['estado'] %}
+        <span class="badge {{ 'status-aldia' if estado=='aldia' else 'status-parcial' if estado=='parcial' else 'status-pendiente' }}">{{ estado }}</span>
+      </div>
+      
+      <div class="card-body">
+        <div class="stat-group">
+          <div class="stat-item">
+            <span class="stat-label">Mes</span>
+            <span class="stat-value">{{ pago['mes'] }}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="stat-item">
+            <span class="stat-label">Valor</span>
+            <span class="stat-value positive">{{ '{:,.0f}'.format(pago['valor']) }}</span>
+          </div>
+        </div>
+        
+        <div class="stat-group">
+          <div class="stat-item full-width">
+            <span class="stat-label">Pagado</span>
+            <span class="stat-value">{{ 'Sí' if pago['pagado'] else 'No' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <p>📭 No hay pagos registrados</p>
+    </div>
+    {% endfor %}
+  </div>
+</main>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const logoutBtn = document.querySelector('a[href*="logout"]');
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const result = await Swal.fire({
+        title: '¿Cerrar sesión?',
+        text: '¿Estás seguro de que quieres cerrar sesión?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3b82f6',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Sí, cerrar',
+        cancelButtonText: 'Cancelar',
+        background: '#11192b',
+        color: '#e2e8f0'
+      });
+      if (result.isConfirmed) {
+        window.location.href = '/logout';
+      }
+    });
+  }
+});
+</script>
+
+</body>
+</html>
