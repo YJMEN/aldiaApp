@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema de Pagos de Agua</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">💧</div>
+        <div class="brand-text">
+          <span class="brand-title">Cocorote</span>
+          <span class="brand-subtitle">Sistema de Recaudo de Agua</span>
+        </div>
+        {% if session.get('user') %}
+        <div style="flex: 1 1 auto"></div>
+        <a class="btn ghost" href="{{ url_for('logout') }}"
+          ><i class="fas fa-sign-out-alt"></i> Salir</a
+        >
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="container home">
+      <section style="margin: 8px 0 24px">
+        <h1 style="margin: 0 0 8px; font-size: 28px">Dashboard</h1>
+        <p style="margin: 0; color: #94a3b8">Mes actual: {{ current_month }}</p>
+      </section>
+
+      <section class="stats-grid" style="margin-bottom: 32px">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-content">
+            <h3>{{ stats['total_usuarios'] or 0 }}</h3>
+            <p>Total Usuarios</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-content">
+            <h3>{{ stats['total_pagaron'] or 0 }}</h3>
+            <p>Pagaron</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div class="stat-content">
+            <h3>{{ stats['total_no_pagaron'] or 0 }}</h3>
+            <p>Pendientes</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+          <div class="stat-content">
+            <h3>{{ '{:,.0f}'.format(stats['total_recaudado'] or 0) }}</h3>
+            <p>Recaudado</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="actions-grid">
+        <a class="action-card" href="/users">
+          <div class="action-icon">
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <h3>Gestionar Usuarios</h3>
+          <p>Agregar, ver y administrar usuarios</p>
+        </a>
+        <a class="action-card" href="/historial">
+          <div class="action-icon">
+            <i class="fas fa-history"></i>
+          </div>
+          <h3>Historial de Pagos</h3>
+          <p>Ver todos los pagos y estadísticas</p>
+        </a>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>© {{ 2026 if false else '' }} Sistema de recaudo Cocorote</span>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+  </body>
+</html>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usuarios</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">💧</div>
+        <div class="brand-text">
+          <span class="brand-title">Cocorote</span>
+          <span class="brand-subtitle">Sistema de Recaudo de Agua</span>
+        </div>
+        {% if session.get('user') %}
+        <div style="flex: 1 1 auto"></div>
+        <a class="btn ghost" href="{{ url_for('logout') }}"
+          ><i class="fas fa-sign-out-alt"></i> Salir</a
+        >
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="container">
+      <section
+        style="
+          margin: 8px 0 18px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        "
+      >
+        <div>
+          <h1 style="margin: 0">Usuarios</h1>
+          <p style="margin: 6px 0 0; color: #555">
+            Nueva deuda se genera mes a mes.
+          </p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <button class="btn secondary" id="btn-toggle-add">
+            <i class="fas fa-user-plus"></i> Nuevo usuario
+          </button>
+          <form
+            method="POST"
+            action="{{ url_for('reset_users') }}"
+            id="form-reset"
+          >
+            <button class="btn danger" type="submit">
+              <i class="fas fa-trash"></i> Reset Usuarios
+            </button>
+          </form>
+          <a class="btn ghost" href="/">⬅ Volver</a>
+        </div>
+      </section>
+
+      <form
+        class="stack hidden"
+        id="form-add-user"
+        method="POST"
+        action="{{ url_for('users') }}"
+      >
+        <div class="input-row">
+          <input
+            class="input"
+            type="text"
+            name="nombre"
+            placeholder="Nombre del usuario"
+            required
+          />
+          <button class="btn primary" type="submit">Agregar usuario</button>
+        </div>
+        {% if error %}
+        <p class="form-error">{{ error }}</p>
+        {% endif %}
+      </form>
+
+      <div class="cards-grid">
+        {% for usuario in usuarios %}
+        <div class="user-card">
+          <div class="card-header">
+            <div class="card-info">
+              <h3 class="card-name">{{ usuario['nombre'] }}</h3>
+              <p class="card-id">ID: {{ usuario['id'] }}</p>
+            </div>
+            {% set estado = usuario['estado'] %}
+            <span
+              class="badge {{ 'status-aldia' if estado=='aldia' else 'status-parcial' if estado=='parcial' else 'status-pendiente' }}"
+              >{{ estado }}</span
+            >
+          </div>
+
+          <div class="card-body">
+            <div class="stat-group">
+              <div class="stat-item">
+                <span class="stat-label">Pagado</span>
+                <span class="stat-value positive"
+                  >{{ '{:,.0f}'.format(usuario['pagado']) }}</span
+                >
+              </div>
+              <div class="divider"></div>
+              <div class="stat-item">
+                <span class="stat-label">Adeuda</span>
+                <span class="stat-value negative"
+                  >{{ '{:,.0f}'.format(usuario['adeuda']) }}</span
+                >
+              </div>
+            </div>
+
+            <div class="stat-group">
+              <div class="stat-item full-width">
+                <span class="stat-label">Saldo a favor</span>
+                <span class="stat-value balance"
+                  >{{ '{:,.0f}'.format(usuario['saldo_favor_real']) }}</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <a
+              class="btn primary"
+              href="{{ url_for('user_detail', user_id=usuario['id']) }}"
+              >Ver pagos</a
+            >
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <p>📭 No hay usuarios registrados</p>
+        </div>
+        {% endfor %}
+      </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/users.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        confirmAddUser("#form-add-user");
+        confirmReset("#form-reset");
+      });
+    </script>
+  </body>
+</html>

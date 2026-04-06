@@ -1,4 +1,5 @@
 venv/
+.venv/
 *.pyc
 __pycache__/
 instance/
@@ -7,6 +8,10 @@ instance/
 
 # Base de datos local
 database/*.db
+*.db
+
+# Variables de entorno
+.env
 
 # Variables de entorno
 .env

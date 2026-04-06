@@ -3,8 +3,12 @@ import sqlite3
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 
+# Usar las mismas variables de entorno que la app
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin1")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cocorote2026")
+
 def reset_db():
-    db_path = os.path.join(os.path.dirname(__file__), 'database', 'aldiaapp.db')
+    db_path = os.path.join(os.path.dirname(__file__), 'app', 'aldiaapp.db')
 
     # Eliminar la BD si existe
     if os.path.exists(db_path):
@@ -18,7 +22,8 @@ def reset_db():
         """
         CREATE TABLE usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nombre TEXT NOT NULL
+            nombre TEXT NOT NULL,
+            saldo_favor INTEGER DEFAULT 0
         )
         """
     )
@@ -47,10 +52,10 @@ def reset_db():
     )
 
     # Crear admin por defecto
-    pw_hash = generate_password_hash("cocorote2026")
+    pw_hash = generate_password_hash(ADMIN_PASSWORD)
     conn.execute(
         "INSERT INTO usuarios_admin (username, password_hash) VALUES (?, ?)",
-        ("admin1", pw_hash)
+        (ADMIN_USERNAME, pw_hash)
     )
 
     # Agregar algunos usuarios de prueba
