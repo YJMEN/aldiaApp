@@ -1,22 +1,17 @@
-from flask import Flask
 import os
-
-app = Flask(__name__, template_folder='templates', static_folder='static')
-
-# Configuración de seguridad
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-change-me")
-
-# Credenciales gestionadas en base de datos (tabla usuarios_admin)
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin1")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "cocorote2026")
-
-from functools import wraps
-from flask import session, redirect, url_for
+from flask import Flask
+from flask import session, redirect, url_for, request
 from .database import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+app = Flask(__name__, template_folder='templates', static_folder='static')
+app.config.from_object(os.environ.get("FLASK_CONFIG", "config.DevelopmentConfig"))
+app.secret_key = app.config["SECRET_KEY"]
+
 # Decorador para proteger rutas
+from functools import wraps
+
 def login_required(view):
     @wraps(view)
     def wrapped_view(*args, **kwargs):
@@ -82,36 +77,40 @@ def ensure_admin_table_and_seed():
         )
         """
     )
-    # Crear admin por defecto si no existe
-    row = conn.execute("SELECT id FROM usuarios_admin WHERE username = ?", (ADMIN_USERNAME,)).fetchone()
-    if not row:
-        pw_hash = generate_password_hash(ADMIN_PASSWORD)
-        conn.execute(
-            "INSERT INTO usuarios_admin (username, password_hash) VALUES (?, ?)",
-            (ADMIN_USERNAME, pw_hash)
-        )
-        conn.commit()
+    admin_username = app.config.get("ADMIN_USERNAME")
+    admin_password = app.config.get("ADMIN_PASSWORD")
+    # Crear admin solo si las credenciales están definidas mediante variables de entorno.
+    if admin_username and admin_password:
+        row = conn.execute("SELECT id FROM usuarios_admin WHERE username = ?", (admin_username,)).fetchone()
+        if not row:
+            pw_hash = generate_password_hash(admin_password)
+            conn.execute(
+                "INSERT INTO usuarios_admin (username, password_hash) VALUES (?, ?)",
+                (admin_username, pw_hash)
+            )
+            conn.commit()
     conn.close()
 
 
 def generar_facturas_mensuales():
     """Genera facturas pendientes para todos los usuarios al inicio de cada mes."""
+    monthly_fee = app.config.get("MONTHLY_FEE", 12000)
     mes_actual = datetime.now().strftime("%Y-%m")
     conn = get_db_connection()
     usuarios = conn.execute("SELECT id, saldo_favor FROM usuarios").fetchall()
     for usuario in usuarios:
-        # Verificar si ya existe un pago para este mes
         existe = conn.execute("SELECT id FROM pagos WHERE usuario_id = ? AND mes = ?", (usuario['id'], mes_actual)).fetchone()
         if not existe:
             saldo = usuario['saldo_favor'] or 0
-            valor_factura = max(0, 12000 - saldo)
-            # Aplicar saldo_favor: reducir factura, y si saldo >=12000, no generar o generar 0
-            nuevo_saldo = max(0, saldo - 12000)
+            nuevo_saldo = max(0, saldo - monthly_fee)
             conn.execute("UPDATE usuarios SET saldo_favor = ? WHERE id = ?", (nuevo_saldo, usuario['id']))
-            # valor=0 significa pendiente; se paga después
-            conn.execute("INSERT INTO pagos (usuario_id, mes, valor, pagado, estado) VALUES (?, ?, 0, 0, 'pendiente')", (usuario['id'], mes_actual))
+            conn.execute(
+                "INSERT INTO pagos (usuario_id, mes, valor, pagado, estado) VALUES (?, ?, 0, 0, 'pendiente')",
+                (usuario['id'], mes_actual)
+            )
     conn.commit()
     conn.close()
 
 # Importar rutas al final para evitar importaciones circulares
-from . import routes
+from .routes import bp
+app.register_blueprint(bp)

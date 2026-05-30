@@ -1,8 +1,7 @@
-import os
 import sqlite3
+from flask import current_app
 
 def get_db_connection():
-    db_path = os.path.join(os.path.dirname(__file__), 'aldiaapp.db')
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(current_app.config["DATABASE_PATH"])
     conn.row_factory = sqlite3.Row
     return conn

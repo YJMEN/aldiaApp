@@ -1,12 +1,13 @@
-from flask import render_template, request, redirect, url_for, session
-from . import app
+from flask import Blueprint, render_template, request, redirect, url_for, session, current_app
 from .database import get_db_connection
 from . import login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
+bp = Blueprint("main", __name__)
+
 # Rutas de autenticación
-@app.route("/login", methods=["GET", "POST"])
+@bp.route("/login", methods=["GET", "POST"], endpoint="login")
 def login():
     error = None
     if request.method == "POST":
@@ -27,14 +28,14 @@ def login():
             error = "Credenciales inválidas."
     return render_template("login.html", error=error)
 
-@app.route("/logout")
+@bp.route("/logout", endpoint="logout")
 @login_required
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
 #ruta principal
-@app.route("/")
+@bp.route("/", endpoint="inicio")
 @login_required
 def inicio():
     conn = get_db_connection()
@@ -52,10 +53,11 @@ def inicio():
     return render_template("index.html", stats=stats, current_month=current_month)
 
 #ruta de usuarios
-@app.route("/users", methods=["GET", "POST"])
+@bp.route("/users", methods=["GET", "POST"], endpoint="users")
 @login_required
 def users():
     error = None
+    monthly_fee = current_app.config.get("MONTHLY_FEE", 12000)
     if request.method == "POST":
         nombre = request.form.get("nombre", "").strip().title()
         if nombre:
@@ -73,14 +75,13 @@ def users():
         else:
             error = "El nombre no puede estar vacío."
     conn = get_db_connection()
-    # Agregación: total pagado, adeuda/saldo y estado en base a mensualidad de 12000
-    query = """
+    query = f"""
     SELECT u.id, u.nombre, u.saldo_favor,
            COALESCE(SUM(p.valor), 0) AS pagado,
-           CASE WHEN COALESCE(SUM(p.valor), 0) < 12000 THEN 12000 - COALESCE(SUM(p.valor), 0) ELSE 0 END AS adeuda,
+           CASE WHEN COALESCE(SUM(p.valor), 0) < {monthly_fee} THEN {monthly_fee} - COALESCE(SUM(p.valor), 0) ELSE 0 END AS adeuda,
            u.saldo_favor AS saldo_favor_real,
            CASE
-             WHEN COALESCE(SUM(p.valor), 0) >= 12000 THEN 'aldia'
+             WHEN COALESCE(SUM(p.valor), 0) >= {monthly_fee} THEN 'aldia'
              WHEN COALESCE(SUM(p.valor), 0) > 0 THEN 'parcial'
              ELSE 'pendiente'
            END AS estado
@@ -93,7 +94,7 @@ def users():
     conn.close()
     return render_template("users.html", usuarios=usuarios, error=error)
 
-@app.route("/reset_users", methods=["POST"])
+@bp.route("/reset_users", methods=["POST"], endpoint="reset_users")
 @login_required
 def reset_users():
     conn = get_db_connection()
@@ -103,7 +104,7 @@ def reset_users():
     conn.close()
     return redirect(url_for("users"))
 
-@app.route("/users/<int:user_id>", methods=["GET"])
+@bp.route("/users/<int:user_id>", methods=["GET"], endpoint="user_detail")
 @login_required
 def user_detail(user_id):
     conn = get_db_connection()
@@ -118,7 +119,7 @@ def user_detail(user_id):
     current_month = datetime.now().strftime("%Y-%m")
     return render_template("user_detail.html", usuario=usuario, pagos=pagos, current_month=current_month)
 
-@app.route("/users/<int:user_id>/pagos", methods=["POST"]) 
+@bp.route("/users/<int:user_id>/pagos", methods=["POST"], endpoint="create_pago")
 @login_required
 def create_pago(user_id):
     mes = request.form.get("mes", "").strip()
@@ -143,9 +144,10 @@ def create_pago(user_id):
     conn.close()
     return redirect(url_for("user_detail", user_id=user_id))
 
-@app.route("/users/<int:user_id>/pagos/<int:pago_id>/pagar", methods=["POST"])
+@bp.route("/users/<int:user_id>/pagos/<int:pago_id>/pagar", methods=["POST"], endpoint="pagar_factura")
 @login_required
 def pagar_factura(user_id, pago_id):
+    monthly_fee = current_app.config.get("MONTHLY_FEE", 12000)
     tipo = request.form.get("tipo_pago")
     porcentaje = request.form.get("valor_parcial", "0").strip()
     conn = get_db_connection()
@@ -155,11 +157,11 @@ def pagar_factura(user_id, pago_id):
         return redirect(url_for("user_detail", user_id=user_id))
 
     pagado_acumulado = pago["valor"] or 0
-    deuda_actual = 12000 - pagado_acumulado
+    deuda_actual = monthly_fee - pagado_acumulado
 
     if tipo == "completo":
-        valor_pagado = 12000 - pagado_acumulado  # Pagar lo restante para completar
-        excedente = 0  # No excedente en completo
+        valor_pagado = monthly_fee - pagado_acumulado
+        excedente = 0
     else:
         try:
             pago_parcial = int(porcentaje)
@@ -178,7 +180,7 @@ def pagar_factura(user_id, pago_id):
         conn.execute("UPDATE usuarios SET saldo_favor = ? WHERE id = ?", (nuevo_saldo, user_id))
 
     nuevo_pagado_acumulado = pagado_acumulado + valor_pagado
-    pagado = 1 if nuevo_pagado_acumulado >= 12000 else 0
+    pagado = 1 if nuevo_pagado_acumulado >= monthly_fee else 0
     estado = "aldia" if pagado == 1 else "parcial"
 
     conn.execute(
@@ -189,7 +191,7 @@ def pagar_factura(user_id, pago_id):
     conn.close()
     return redirect(url_for("user_detail", user_id=user_id))
 
-@app.route("/historial")
+@bp.route("/historial", endpoint="historial")
 @login_required
 def historial():
     conn = get_db_connection()

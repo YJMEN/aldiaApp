@@ -63,15 +63,10 @@ AldiaApp es una aplicación web desarrollada con Flask para gestionar usuarios, 
 ## Configuración
 
 - **Base de datos**: La aplicación utiliza SQLite. Las tablas se crean automáticamente al ejecutar la aplicación por primera vez.
-- **Variables de entorno** (opcional):
-  - `SECRET_KEY`: Clave secreta para sesiones. Si no se define, usa un valor por defecto (cambiar en producción).
-  - `ADMIN_USERNAME`: Nombre de usuario del administrador por defecto (por defecto: "admin1").
-  - `ADMIN_PASSWORD`: Contraseña del administrador por defecto (por defecto: "cocorote2026").
-  - Para configurar, copia `.env.example` a `.env` y ajusta los valores. En Windows PowerShell: `$env:VARIABLE="valor"`.
-- **Credenciales de administrador por defecto**:
-  - Usuario: Definido por `ADMIN_USERNAME`
-  - Contraseña: Definida por `ADMIN_PASSWORD`
-  - Estas credenciales se crean automáticamente en la base de datos si no existen.
+- **Variables de entorno** (recomendado en producción):
+   - `SECRET_KEY`: Clave secreta para sesiones (obligatoria en producción). No dejar un valor fijo en el código.
+   - `ADMIN_USERNAME` y `ADMIN_PASSWORD`: Si se definen, se creará ese usuario administrador al inicializar la base de datos. No incluyas credenciales por defecto en el repositorio.
+   - Para configurar, copia `.env.example` a `.env` o exporta variables en tu entorno (PowerShell: `$env:VARIABLE="valor"`).
 
 ## Ejecución
 
@@ -127,6 +122,28 @@ aldiaApp/
 - Para desarrollo, el modo debug está habilitado. Desactívalo en producción.
 - **Seguridad**: Las plantillas usan Jinja2 que escapa automáticamente el HTML. El JavaScript está organizado para evitar vulnerabilidades comunes como XSS. No se usan eval() ni innerHTML con datos no sanitizados. Se recomienda agregar tokens CSRF en producción para mayor seguridad.
 - Si encuentras problemas, verifica que todas las dependencias estén instaladas y que el puerto 5001 esté disponible.
+
+## Despliegue en PythonAnywhere
+
+Pasos rápidos para desplegar en PythonAnywhere:
+
+- Sube el código (git clone o SFTP) a tu cuenta.
+- Crea y activa un virtualenv y ejecuta `pip install -r requirements.txt`.
+- En la sección `Web`, configura el archivo WSGI para importar la aplicación:
+
+```python
+import sys
+project_home = '/home/yourusername/path/to/aldiaApp'
+if project_home not in sys.path:
+   sys.path.insert(0, project_home)
+
+from app import app as application
+```
+
+- Configura las `Environment variables` (SECRET_KEY, ADMIN_USERNAME, ADMIN_PASSWORD).
+- No uses `APScheduler` dentro del WSGI para tareas programadas; crea una tarea en la sección `Tasks` que ejecute `generate_facturas.py` mensualmente.
+
+Consulta `deploy/pythonanywhere.md` para instrucciones completas.
 
 ## Contribución
 
