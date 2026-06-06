@@ -142,7 +142,7 @@ def create_pago(user_id):
     )
     conn.commit()
     conn.close()
-    return redirect(url_for("user_detail", user_id=user_id))
+    return redirect(url_for("main.user_detail", user_id=user_id))
 
 @bp.route("/users/<int:user_id>/pagos/<int:pago_id>/pagar", methods=["POST"], endpoint="pagar_factura")
 @login_required

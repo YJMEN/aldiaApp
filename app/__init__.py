@@ -1,37 +1,10 @@
 import os
-from flask import Flask
-from flask import session, redirect, url_for, request
+from flask import Flask, session, redirect, url_for, request, current_app
 from .database import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-
-
-def create_app(config_name=None):
-    app = Flask(__name__, template_folder="templates", static_folder="static")
-    app.config.from_object(config_name or os.environ.get("FLASK_CONFIG", "config.DevelopmentConfig"))
-    app.secret_key = app.config["SECRET_KEY"]
-
-    from .routes import bp
-    app.register_blueprint(bp)
-
-    return app
-
-
-# Decorador para proteger rutas
 from functools import wraps
 
-def login_required(view):
-    @wraps(view)
-    def wrapped_view(*args, **kwargs):
-        if not session.get("user"):
-            return redirect(url_for("main.login", next=request.path))
-        return view(*args, **kwargs)
-    return wrapped_view
-
-
-app = create_app()
-
-# Inicialización de esquema y usuario administrador por defecto
 
 def ensure_schema():
     """Crea tablas mínimas necesarias de forma idempotente."""
@@ -88,9 +61,8 @@ def ensure_admin_table_and_seed():
         )
         """
     )
-    admin_username = app.config.get("ADMIN_USERNAME")
-    admin_password = app.config.get("ADMIN_PASSWORD")
-    # Crear admin solo si las credenciales están definidas mediante variables de entorno.
+    admin_username = current_app.config.get("ADMIN_USERNAME")
+    admin_password = current_app.config.get("ADMIN_PASSWORD")
     if admin_username and admin_password:
         row = conn.execute("SELECT id FROM usuarios_admin WHERE username = ?", (admin_username,)).fetchone()
         if not row:
@@ -105,7 +77,7 @@ def ensure_admin_table_and_seed():
 
 def generar_facturas_mensuales():
     """Genera facturas pendientes para todos los usuarios al inicio de cada mes."""
-    monthly_fee = app.config.get("MONTHLY_FEE", 12000)
+    monthly_fee = current_app.config.get("MONTHLY_FEE", 12000)
     mes_actual = datetime.now().strftime("%Y-%m")
     conn = get_db_connection()
     usuarios = conn.execute("SELECT id, saldo_favor FROM usuarios").fetchall()
@@ -121,4 +93,31 @@ def generar_facturas_mensuales():
             )
     conn.commit()
     conn.close()
+
+
+def create_app(config_name=None):
+    app = Flask(__name__, template_folder="templates", static_folder="static")
+    app.config.from_object(config_name or os.environ.get("FLASK_CONFIG", "config.DevelopmentConfig"))
+    app.secret_key = app.config["SECRET_KEY"]
+
+    from .routes import bp
+    app.register_blueprint(bp)
+
+    with app.app_context():
+        ensure_schema()
+        ensure_admin_table_and_seed()
+
+    return app
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not session.get("user"):
+            return redirect(url_for("main.login", next=request.path))
+        return view(*args, **kwargs)
+    return wrapped_view
+
+
+app = create_app()
 
