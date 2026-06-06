@@ -31,7 +31,7 @@
         </div>
         {% if session.get('user') %}
         <div style="flex: 1 1 auto"></div>
-        <a class="btn ghost" href="{{ url_for('logout') }}"
+        <a class="btn ghost" href="{{ url_for('main.logout') }}"
           ><i class="fas fa-sign-out-alt"></i> Salir</a
         >
         {% endif %}

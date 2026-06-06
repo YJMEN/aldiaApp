@@ -24,7 +24,7 @@
         </div>
         {% if session.get('user') %}
         <div style="flex: 1 1 auto"></div>
-        <a class="btn ghost" href="{{ url_for('logout') }}"
+        <a class="btn ghost" href="{{ url_for('main.logout') }}"
           ><i class="fas fa-sign-out-alt"></i> Salir</a
         >
         {% endif %}
@@ -48,7 +48,7 @@
             Mes actual: {{ current_month }}
           </p>
         </div>
-        <a class="btn ghost" href="{{ url_for('users') }}"
+        <a class="btn ghost" href="{{ url_for('main.users') }}"
           >⬅ Volver a Usuarios</a
         >
       </section>
@@ -111,7 +111,7 @@
               class="pago-form hidden"
               id="form-pago-{{ p['id'] }}"
               method="POST"
-              action="{{ url_for('pagar_factura', user_id=usuario['id'], pago_id=p['id']) }}"
+              action="{{ url_for('main.pagar_factura', user_id=usuario['id'], pago_id=p['id']) }}"
               style="margin-top: 10px"
             >
               <div class="input-row" style="flex-wrap: wrap; gap: 8px">

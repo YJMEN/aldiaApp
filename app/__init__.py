@@ -5,9 +5,17 @@ from .database import get_db_connection
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
-app = Flask(__name__, template_folder='templates', static_folder='static')
-app.config.from_object(os.environ.get("FLASK_CONFIG", "config.DevelopmentConfig"))
-app.secret_key = app.config["SECRET_KEY"]
+
+def create_app(config_name=None):
+    app = Flask(__name__, template_folder="templates", static_folder="static")
+    app.config.from_object(config_name or os.environ.get("FLASK_CONFIG", "config.DevelopmentConfig"))
+    app.secret_key = app.config["SECRET_KEY"]
+
+    from .routes import bp
+    app.register_blueprint(bp)
+
+    return app
+
 
 # Decorador para proteger rutas
 from functools import wraps
@@ -16,9 +24,12 @@ def login_required(view):
     @wraps(view)
     def wrapped_view(*args, **kwargs):
         if not session.get("user"):
-            return redirect(url_for("login", next=request.path))
+            return redirect(url_for("main.login", next=request.path))
         return view(*args, **kwargs)
     return wrapped_view
+
+
+app = create_app()
 
 # Inicialización de esquema y usuario administrador por defecto
 
@@ -111,6 +122,3 @@ def generar_facturas_mensuales():
     conn.commit()
     conn.close()
 
-# Importar rutas al final para evitar importaciones circulares
-from .routes import bp
-app.register_blueprint(bp)

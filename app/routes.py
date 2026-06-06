@@ -22,7 +22,7 @@ def login():
         if admin and check_password_hash(admin["password_hash"], password):
             session["user"] = admin["username"]
             session["user_id"] = admin["id"]
-            next_url = request.args.get("next") or url_for("inicio")
+            next_url = request.args.get("next") or url_for("main.inicio")
             return redirect(next_url)
         else:
             error = "Credenciales inválidas."
@@ -32,7 +32,7 @@ def login():
 @login_required
 def logout():
     session.clear()
-    return redirect(url_for("login"))
+    return redirect(url_for("main.login"))
 
 #ruta principal
 @bp.route("/", endpoint="inicio")
@@ -71,7 +71,7 @@ def users():
             )
             conn.commit()
             conn.close()
-            return redirect(url_for("users"))
+            return redirect(url_for("main.users"))
         else:
             error = "El nombre no puede estar vacío."
     conn = get_db_connection()
@@ -102,7 +102,7 @@ def reset_users():
     conn.execute("DELETE FROM usuarios")
     conn.commit()
     conn.close()
-    return redirect(url_for("users"))
+    return redirect(url_for("main.users"))
 
 @bp.route("/users/<int:user_id>", methods=["GET"], endpoint="user_detail")
 @login_required
@@ -115,7 +115,7 @@ def user_detail(user_id):
     ).fetchall()
     conn.close()
     if not usuario:
-        return redirect(url_for("users"))
+        return redirect(url_for("main.users"))
     current_month = datetime.now().strftime("%Y-%m")
     return render_template("user_detail.html", usuario=usuario, pagos=pagos, current_month=current_month)
 
@@ -133,7 +133,7 @@ def create_pago(user_id):
         valor = None
 
     if not mes or valor is None:
-        return redirect(url_for("user_detail", user_id=user_id))
+        return redirect(url_for("main.user_detail", user_id=user_id))
 
     conn = get_db_connection()
     conn.execute(
@@ -154,7 +154,7 @@ def pagar_factura(user_id, pago_id):
     pago = conn.execute("SELECT * FROM pagos WHERE id = ? AND usuario_id = ?", (pago_id, user_id)).fetchone()
     if not pago:
         conn.close()
-        return redirect(url_for("user_detail", user_id=user_id))
+        return redirect(url_for("main.user_detail", user_id=user_id))
 
     pagado_acumulado = pago["valor"] or 0
     deuda_actual = monthly_fee - pagado_acumulado
@@ -169,7 +169,7 @@ def pagar_factura(user_id, pago_id):
             pago_parcial = 0
         if pago_parcial <= 0:
             conn.close()
-            return redirect(url_for("user_detail", user_id=user_id))
+            return redirect(url_for("main.user_detail", user_id=user_id))
         valor_pagado = min(pago_parcial, deuda_actual)
         excedente = max(0, pago_parcial - deuda_actual)  # Si paga más que la deuda actual
 
@@ -189,7 +189,7 @@ def pagar_factura(user_id, pago_id):
     )
     conn.commit()
     conn.close()
-    return redirect(url_for("user_detail", user_id=user_id))
+    return redirect(url_for("main.user_detail", user_id=user_id))
 
 @bp.route("/historial", endpoint="historial")
 @login_required
